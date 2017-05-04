@@ -1,0 +1,13 @@
+[paths]
+source =
+    jwt_oauth2lib
+    oauth2_jwt_provider
+
+[run]
+source =
+    jwt_oauth2lib
+    oauth2_jwt_provider
+omit =
+    *migrations*
+    *tox*
+    setup.py
