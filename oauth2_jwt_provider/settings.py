@@ -36,6 +36,8 @@ DOT_USER_SETTINGS = getattr(settings, 'OAUTH2_PROVIDER', {})
 
 DEFAULTS = {
     'JWT_AUDIENCE': None,
+    'JWT_MAX_EXPIRE_SECONDS': 300,
+    'TIME_SKEW_ALLOWANCE_SECONDS': 30,
     'PUBLIC_KEY_MODEL': 'oauth2_jwt_provider.PublicKey',
     'PUBLIC_KEY_EXPIRE_DAYS': None,
     'ISSUER_IDENTIFIER_MODEL': oauth2_settings.APPLICATION_MODEL,

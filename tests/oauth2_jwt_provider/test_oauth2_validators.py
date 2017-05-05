@@ -7,6 +7,7 @@
 from __future__ import absolute_import, unicode_literals
 
 # Imports from Standard Library
+import time
 from datetime import datetime
 
 # Imports from Django
@@ -285,7 +286,13 @@ class TestOAuth2Validator(TransactionTestCase):
         )
         self.assertFalse(result)
 
-
     def test_validate_additional_claims(self):
         """Test validate_additional_claims"""
-        self.assertTrue(self.validator.validate_additional_claims())
+        jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS = 300
+        exp = time.time() + 3000
+        payload = {'exp': exp}
+        self.assertFalse(self.validator.validate_additional_claims(payload))
+
+        exp = time.time() + 250
+        payload = {'exp': exp}
+        self.assertTrue(self.validator.validate_additional_claims(payload))

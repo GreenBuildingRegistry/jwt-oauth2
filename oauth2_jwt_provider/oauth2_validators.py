@@ -8,6 +8,7 @@ from __future__ import absolute_import, unicode_literals
 
 # Imports from Standard Library
 import logging
+import time
 
 # Imports from Django
 from django.contrib.auth import get_user_model
@@ -159,5 +160,12 @@ class OAuth2Validator(RequestValidator):
         else:
             return True
 
-    def validate_additional_claims(self):
-        return True
+    def validate_additional_claims(self, payload):
+        exp = float(payload['exp'])
+        timestamp_now = time.time()
+        max_sec = (jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS +
+                   jwt_oauth2_settings.TIME_SKEW_ALLOWANCE_SECONDS)
+        if exp - timestamp_now > max_sec:
+            return False
+        else:
+            return True
