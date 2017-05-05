@@ -1,10 +1,21 @@
 
 """
-This module is largely derived from Django OAuth Toolkit settings.
+This module is largely derived from Django OAuth Toolkit and DRF settings.
+
 Settings for the OAuth2 JWT Provider are all namespaced in the 
 OAUTH2_JWT_PROVIDER setting.
+
+For example your project's `settings.py` file might look like this:
+
+OAUTH2_JWT_PROVIDER = {
+    'JWT_AUDIENCE': 'https://site.address/oauth/token/'
+    'PUBLIC_KEY_MODEL'': 'oauth2_jwt_provider.PublicKey',
+    'PUBLIC_KEY_EXPIRE_DAYS': 90
+}
+
 This module provides the `jwt_oauth2_settings` object, that is used to access
-OAuth2 JWT Provider settings, checking for user settings first, then falling
+OAuth2 JWT Provider settings, checking for user settings first, then 
+OAuth2 Provider user settings for a limited set of attributes, then falling
 back to the defaults.
 """
 from __future__ import unicode_literals
@@ -58,6 +69,7 @@ IMPORT_STRINGS = (
     'OAUTH2_VALIDATOR_CLASS',
 )
 
+# List of settings that may be set in OAUTH2_JWT_PROVIDER or OAUTH2_PROVIDER
 DOT_SETTING_ATTRS = {
     'OAUTH2_SERVER_CLASS',
     'OAUTH2_VALIDATOR_CLASS',
@@ -70,11 +82,18 @@ def perform_import(val, setting_name):
     If the given setting is a string import notation,
     then perform the necessary import or imports.
     """
+    error = None
     if isinstance(val, (list, tuple)):
-        return [import_from_string(item, setting_name) for item in val]
+        if all('.' in item for item in val):
+            return [import_from_string(item, setting_name) for item in val]
+        else:
+            error = True
     elif "." in val:
         return import_from_string(val, setting_name)
     else:
+        error = True
+
+    if error:
         raise ImproperlyConfigured(
             "Bad value for {}: {}".format(setting_name, val)
         )
@@ -157,9 +176,3 @@ jwt_oauth2_settings = OAuth2JWTProviderSettings(
     USER_SETTINGS, DEFAULTS, IMPORT_STRINGS, MANDATORY,
     DOT_USER_SETTINGS, DOT_SETTING_ATTRS
 )
-
-
-# Push user setting or JWT OAuth defaults into DOT settings
-oauth2_settings.SCOPES = jwt_oauth2_settings.SCOPES
-oauth2_settings.OAUTH2_SERVER_CLASS = jwt_oauth2_settings.OAUTH2_SERVER_CLASS
-oauth2_settings.OAUTH2_VALIDATOR_CLASS = jwt_oauth2_settings.OAUTH2_VALIDATOR_CLASS

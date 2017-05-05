@@ -10,7 +10,7 @@ from __future__ import absolute_import, unicode_literals
 from unittest import TestCase
 
 # Imports from Django
-from django.urls import resolve, reverse
+from django.core.urlresolvers import resolve, reverse
 
 # Imports from Third Party Modules
 from oauth2_provider.views import AuthorizationView
