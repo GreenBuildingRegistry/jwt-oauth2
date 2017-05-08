@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
+copyright (c) 2016 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -96,7 +97,7 @@ class OAuth2Validator(RequestValidator):
             return False
         else:
             if client.authorization_grant_type == GRANT_CLIENT_CREDENTIALS:
-                if client.client_id != sub:
+                if sub != client.client_id:
                     return False
                 else:
                     user = client.user

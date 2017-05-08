@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
+copyright (c) 2016 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -154,7 +155,8 @@ class JWTGrant(GrantTypeBase):
         # client_id. client_id is validated, rather than authenticated, since
         # authentication is completed by validating token signature.
         # request.client is set in validate_client_id.
-        request.client_id = payload.get('client_id', payload.get('iss'))
+        if not request.client_id:
+            request.client_id = payload.get('client_id', payload.get('iss'))
         if not self.request_validator.validate_client_id(
                 request.client_id, request
         ):
@@ -215,9 +217,10 @@ class JWTGrant(GrantTypeBase):
         # request_validator class, to either verify that all requested scopes
         # are within previously authorized scopes, or allow all scopes that
         # are available to the client.
+        requested_scope = request.scope or payload.get('scope')
         if not self.request_validator.validate_refresh_scopes(
                 request, getattr(request, 'refresh_tokens', None),
-                payload.get('scope')
+                requested_scope
         ):
             log.debug(
                 'Client %s lacks requested scopes, %s.',

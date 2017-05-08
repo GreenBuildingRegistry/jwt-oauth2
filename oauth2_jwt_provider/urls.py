@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
+copyright (c) 2016 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
