@@ -44,7 +44,4 @@ class RequestValidatorTest(TestCase):
             NotImplementedError, val.validate_refresh_scopes,
             'request', ['prior tokens'], ['scope']
         )
-        self.assertRaises(
-            NotImplementedError, val.validate_additional_claims,
-            'request', 'payload'
-        )
+        self.assertTrue(val.validate_additional_claims('request', 'payload'))

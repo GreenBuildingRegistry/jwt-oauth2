@@ -11,13 +11,17 @@ from __future__ import absolute_import, unicode_literals
 from django.core.exceptions import ValidationError
 
 # Imports from Third Party Modules
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import (
     load_der_public_key,
     load_pem_public_key,
     load_ssh_public_key,
 )
-from cryptography.exceptions import UnsupportedAlgorithm
+
+PUB_KEY_LOADERS = [
+    load_pem_public_key, load_ssh_public_key, load_der_public_key
+]
 
 
 def validate_public_key(value):
@@ -25,10 +29,7 @@ def validate_public_key(value):
     or DER format. If not, raises ValidationError"""
     is_valid = False
     error = None
-    pub_key_loaders = [
-        load_pem_public_key, load_ssh_public_key, load_der_public_key
-    ]
-    for loader in pub_key_loaders:
+    for loader in PUB_KEY_LOADERS:
         if not is_valid:
             try:
                 loader(value.encode('utf-8'), default_backend())

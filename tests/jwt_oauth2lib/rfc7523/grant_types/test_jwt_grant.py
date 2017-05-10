@@ -18,7 +18,6 @@ from oauthlib.oauth2 import BearerToken
 from oauthlib.oauth2.rfc6749 import errors
 
 # Local Imports
-from jwt_oauth2lib.rfc7523 import errors as jwt_errors
 from jwt_oauth2lib.rfc7523.grant_types import JWTGrant
 from tests.helpers import FakeToken
 
@@ -96,7 +95,7 @@ class JWTGrantTest(TestCase):
             exp="1490498853"
         )
         self.request.assertion = bad_exp.token
-        with self.assertRaises(jwt_errors.InvalidJWTError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'JWT request contains an expired signature'
         self.assertIn(expected, err.exception.args[0])
@@ -106,7 +105,7 @@ class JWTGrantTest(TestCase):
             nbf="2745532800"
         )
         self.request.assertion = immature.token
-        with self.assertRaises(jwt_errors.InvalidJWTError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'JWT is not yet valid (nbf)'
         self.assertIn(expected, err.exception.args[0])
@@ -115,7 +114,7 @@ class JWTGrantTest(TestCase):
             aud='', sub=self.mock_user, iss=self.mock_client_id,
         )
         self.request.assertion = bad_aud.token
-        with self.assertRaises(jwt_errors.InvalidJWTClaimError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'JWT request contains invalid audience claim'
         self.assertIn(expected, err.exception.args[0])
@@ -125,13 +124,13 @@ class JWTGrantTest(TestCase):
             exp=None
         )
         self.request.assertion = required_claims.token
-        with self.assertRaises(jwt_errors.InvalidJWTClaimError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'JWT is missing a required claim'
         self.assertIn(expected, err.exception.args[0])
 
         self.request.assertion = ''
-        with self.assertRaises(jwt_errors.InvalidJWTError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'One of more errors occurred during JWT decode'
         self.assertIn(expected, err.exception.args[0])
@@ -142,7 +141,7 @@ class JWTGrantTest(TestCase):
         self.request.grant_type = self.grant_type
         self.request.assertion = self.assertion.token
         self.mock_validator.validate_issuer.return_value = False
-        with self.assertRaises(jwt_errors.InvalidJWTClaimError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'Missing or invalid (iss) claim'
         self.assertIn(expected, err.exception.args[0])
@@ -156,7 +155,7 @@ class JWTGrantTest(TestCase):
         self.mock_validator.validate_client_id.return_value = True
 
         self.mock_validator.validate_signature.return_value = False
-        with self.assertRaises(jwt_errors.InvalidJWTSignatureError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'Missing or invalid token signature'
         self.assertIn(expected, err.exception.args[0])
@@ -164,7 +163,7 @@ class JWTGrantTest(TestCase):
         self.mock_validator.validate_signature.return_value = True
 
         self.mock_validator.validate_subject.return_value = False
-        with self.assertRaises(jwt_errors.InvalidJWTClaimError) as err:
+        with self.assertRaises(errors.InvalidGrantError) as err:
             self.auth.validate_token_request(self.request)
         expected = 'Missing or invalid (sub) claim'
         self.assertIn(expected, err.exception.args[0])
@@ -186,7 +185,7 @@ class JWTGrantTest(TestCase):
         self.mock_validator.validate_refresh_scopes.return_value = True
 
         self.mock_validator.validate_additional_claims.return_value = False
-        with self.assertRaises(jwt_errors.InvalidJWTClaimError):
+        with self.assertRaises(errors.InvalidGrantError):
             self.auth.validate_token_request(self.request)
 
     def test_custom_token_validators(self):

@@ -17,7 +17,6 @@ from oauthlib.oauth2.rfc6749 import errors
 from oauthlib.oauth2.rfc6749.grant_types.base import GrantTypeBase
 
 # Local Imports
-from jwt_oauth2lib.rfc7523 import errors as jwt_errors
 from jwt_oauth2lib.rfc7523.request_validator import RequestValidator
 
 log = logging.getLogger(__name__)  # pylint: disable-msg=invalid-name
@@ -75,8 +74,12 @@ class JWTGrant(GrantTypeBase):
     def validate_token_request(self, request):
         """validate token request by request attributes and jwt claims."""
         # pylint: disable-msg=too-many-branches
+
         # REQUIRED. Per http://tools.ietf.org/html/rfc7523#section-2.1, value
         # MUST be set to "urn:ietf:params:oauth:grant-type:jwt-bearer".
+        # Note: support for receiving client authentication jwt requests
+        # following the parameter values specified by rfc7523 section 2.2 is
+        # not yet implemented https://tools.ietf.org/html/rfc7523#section-2.2
         if request.grant_type != 'urn:ietf:params:oauth:grant-type:jwt-bearer':
             raise errors.UnsupportedGrantTypeError(request=request)
 
@@ -113,27 +116,27 @@ class JWTGrant(GrantTypeBase):
                 algorithms=['RS256']
             )
         except jwt.ExpiredSignatureError:
-            raise jwt_errors.InvalidJWTError(
+            raise errors.InvalidGrantError(
                 description='JWT request contains an expired signature',
                 request=request
             )
         except jwt.ImmatureSignatureError:
-            raise jwt_errors.InvalidJWTError(
+            raise errors.InvalidGrantError(
                 description='JWT is not yet valid (nbf)',
                 request=request
             )
         except jwt.InvalidAudienceError:
-            raise jwt_errors.InvalidJWTClaimError(
+            raise errors.InvalidGrantError(
                 description='JWT request contains invalid audience claim',
                 request=request
             )
         except jwt.MissingRequiredClaimError:
-            raise jwt_errors.InvalidJWTClaimError(
+            raise errors.InvalidGrantError(
                 description='JWT is missing a required claim',
                 request=request
             )
         except jwt.DecodeError:
-            raise jwt_errors.InvalidJWTError(
+            raise errors.InvalidGrantError(
                 description='One of more errors occurred during JWT decode',
                 request=request
             )
@@ -146,12 +149,12 @@ class JWTGrant(GrantTypeBase):
         # 3986 [RFC3986] https://tools.ietf.org/html/rfc7523#section-3
         if not self.request_validator.validate_issuer(request, payload):
             log.debug('Invalid token, denying access. %s', payload)
-            raise jwt_errors.InvalidJWTClaimError(
+            raise errors.InvalidGrantError(
                 description='Missing or invalid (iss) claim',
                 request=request
             )
 
-        # If client_id is not supplied as a claim, the issuer must be
+        # If client_id is not supplied as a param or claim, the issuer must be
         # client_id. client_id is validated, rather than authenticated, since
         # authentication is completed by validating token signature.
         # request.client is set in validate_client_id.
@@ -171,7 +174,7 @@ class JWTGrant(GrantTypeBase):
                 request, request.client, request.assertion
         ):
             log.debug('Signature authentication failed, %s.', request)
-            raise jwt_errors.InvalidJWTSignatureError(
+            raise errors.InvalidGrantError(
                 description='Missing or invalid token signature',
                 request=request
             )
@@ -185,7 +188,7 @@ class JWTGrant(GrantTypeBase):
                 request, request.client, payload
         ):
             log.debug('Invalid subject, denying access. %s', payload)
-            raise jwt_errors.InvalidJWTClaimError(
+            raise errors.InvalidGrantError(
                 description='Missing or invalid (sub) claim',
                 request=request
             )
@@ -234,7 +237,10 @@ class JWTGrant(GrantTypeBase):
         if not self.request_validator.validate_additional_claims(
                 request, payload
         ):
-            raise jwt_errors.InvalidJWTClaimError(request=request)
+            raise errors.InvalidGrantError(
+                description='One or more jwt claims failed validation',
+                request=request
+            )
 
         for validator in self.custom_validators.post_token:
             validator(request)

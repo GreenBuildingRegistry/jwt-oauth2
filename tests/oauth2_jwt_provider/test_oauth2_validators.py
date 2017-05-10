@@ -15,9 +15,9 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TransactionTestCase
-import mock
 
 # Imports from Third Party Modules
+import mock
 from oauth2_provider.models import (
     AccessToken,
     RefreshToken,
@@ -27,10 +27,10 @@ from oauth2_provider.settings import oauth2_settings
 from oauthlib.common import Request
 
 # Local Imports
+from oauth2_jwt_provider.models import PublicKey
 from oauth2_jwt_provider.oauth2_validators import OAuth2Validator
 from oauth2_jwt_provider.settings import jwt_oauth2_settings
-from oauth2_jwt_provider.models import PublicKey
-from tests.helpers.fake_token import FakeToken, PUBLIC_KEY_SSH, PUBLIC_KEY_PEM
+from tests.helpers.fake_token import PUBLIC_KEY_PEM, PUBLIC_KEY_SSH, FakeToken
 from tests.models import NonUniqueIssuer
 
 UserModel = get_user_model()
@@ -68,22 +68,23 @@ class TestOAuth2Validator(TransactionTestCase):
     def test_get_audience(self):
         """Test get_audience"""
         self.assertEqual(
-            jwt_oauth2_settings.JWT_AUDIENCE, self.validator.get_audience()
+            jwt_oauth2_settings.JWT_AUDIENCE,
+            self.validator.get_audience(self.request, )
         )
 
     def test_validate_issuer(self):
         """Test validate_issuer"""
         token_payload = {
         }
-        result = self.validator.validate_issuer(token_payload)
+        result = self.validator.validate_issuer(self.request, token_payload)
         self.assertFalse(result)
 
         token_payload['iss'] = 'unmatched issuer'
-        result = self.validator.validate_issuer(token_payload)
+        result = self.validator.validate_issuer(self.request, token_payload)
         self.assertFalse(result)
 
         token_payload['iss'] = 'client_id'
-        result = self.validator.validate_issuer(token_payload)
+        result = self.validator.validate_issuer(self.request, token_payload)
         self.assertTrue(result)
 
         non_unique = 'non unique issuer'
@@ -94,6 +95,7 @@ class TestOAuth2Validator(TransactionTestCase):
         token_payload['iss'] = non_unique
         self.assertRaises(
             ImproperlyConfigured, self.validator.validate_issuer,
+            self.request,
             token_payload
         )
 
@@ -287,13 +289,29 @@ class TestOAuth2Validator(TransactionTestCase):
         )
         self.assertFalse(result)
 
-    def test_validate_additional_claims(self):
+    @mock.patch.object(OAuth2Validator, '_validate_max_exp')
+    def test_validate_additional_claims(self, mock_valid_max_exp):
         """Test validate_additional_claims"""
-        jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS = 300
-        exp = time.time() + 3000
-        payload = {'exp': exp}
-        self.assertFalse(self.validator.validate_additional_claims(payload))
+        payload = {'exp': time.time()}
+        mock_valid_max_exp.return_value = True
+        self.assertTrue(
+            self.validator.validate_additional_claims(self.request, payload)
+        )
 
+        mock_valid_max_exp.return_value = False
+        self.assertFalse(
+            self.validator.validate_additional_claims(self.request, payload)
+        )
+
+    def test_validate_max_exp(self):
+        jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS = 300
+        jwt_oauth2_settings.TIME_SKEW_ALLOWANCE_SECONDS = 10
         exp = time.time() + 250
-        payload = {'exp': exp}
-        self.assertTrue(self.validator.validate_additional_claims(payload))
+        self.assertTrue(self.validator._validate_max_exp(exp))
+
+        exp = time.time() + 3000
+        self.assertFalse(self.validator._validate_max_exp(exp))
+
+        jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS = None
+        jwt_oauth2_settings.TIME_SKEW_ALLOWANCE_SECONDS = None
+        self.assertTrue(self.validator._validate_max_exp(exp))

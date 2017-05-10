@@ -2,7 +2,7 @@
 """
 This module is largely derived from Django OAuth Toolkit and DRF settings.
 
-Settings for the OAuth2 JWT Provider are all namespaced in the 
+Settings for the OAuth2 JWT Provider are all namespaced in the
 OAUTH2_JWT_PROVIDER setting.
 
 For example your project's `settings.py` file might look like this:
@@ -14,7 +14,7 @@ OAUTH2_JWT_PROVIDER = {
 }
 
 This module provides the `jwt_oauth2_settings` object, that is used to access
-OAuth2 JWT Provider settings, checking for user settings first, then 
+OAuth2 JWT Provider settings, checking for user settings first, then
 OAuth2 Provider user settings for a limited set of attributes, then falling
 back to the defaults.
 """
@@ -126,9 +126,11 @@ class OAuth2JWTProviderSettings(object):
     Any setting with string import paths will be automatically resolved
     and return the class, rather than the string literal.
     """
+    # pylint: disable-msg=too-few-public-methods
 
     def __init__(self, user_settings=None, defaults=None, import_strings=None,
                  mandatory=None, dot_user_settings=None, dot_settings=None):
+        # pylint: disable-msg=too-many-arguments
         self.user_settings = user_settings or USER_SETTINGS
         self.defaults = defaults or DEFAULTS
         self.import_strings = import_strings or IMPORT_STRINGS
@@ -168,6 +170,7 @@ class OAuth2JWTProviderSettings(object):
         return val
 
     def validate_setting(self, attr, val):
+        """Ensure no mandatory settings have empty values."""
         if not val and attr in self.mandatory:
             raise AttributeError(
                 "OAuth2JWTProvider setting: '{}' is mandatory".format(attr)

@@ -23,9 +23,9 @@ from django.core.exceptions import (
 import jwt
 from oauth2_provider.models import AbstractApplication, RefreshToken
 from oauth2_provider.oauth2_validators import (
-    OAuth2Validator as RequestValidator,
-    GRANT_TYPE_MAPPING
+    OAuth2Validator as RequestValidator
 )
+from oauth2_provider.oauth2_validators import GRANT_TYPE_MAPPING
 from oauth2_provider.scopes import get_scopes_backend
 from oauthlib.oauth2.rfc6749 import utils
 
@@ -40,18 +40,27 @@ GRANT_TYPE_MAPPING['urn:ietf:params:oauth:grant-type:jwt-bearer'] = (
     AbstractApplication.GRANT_CLIENT_CREDENTIALS
 )
 
-log = logging.getLogger('oauth2_provider')
-User = get_user_model()
+log = logging.getLogger('oauth2_provider')  # pylint: disable-msg=invalid-name
+User = get_user_model()  # pylint: disable-msg=invalid-name
 
 
 class OAuth2Validator(RequestValidator):
+    """Extension of oauth2_provider.oauth2_validators.OAuth2Validator to
+     include validation methods required by JWTGrant."""
     # pylint: disable-msg=abstract-method
     algorithms = ['RS256']
 
-    def get_audience(self):
+    def get_audience(self, request):
+        """Retrieve authorization server identifier (audience) from settings"""
+        # pylint: disable-msg=unused-argument
         return jwt_oauth2_settings.JWT_AUDIENCE
 
-    def validate_issuer(self, token):
+    def validate_issuer(self, request, token):
+        """
+        Ensure an 'iss' claim exists and refers to a valid, unique issuer as
+        specified by settings ISSUER_IDENTIFIER_MODEL, ISSUER_IDENTIFIER_ATTR
+        """
+        # pylint: disable-msg=unused-argument
         if not token.get('iss'):
             return False
         else:
@@ -72,9 +81,13 @@ class OAuth2Validator(RequestValidator):
                 return True
 
     def validate_signature(self, request, client, token):
+        """
+        Ensure jwt contains a valid digital signature as decoded using
+        public_key associated with client and RS256 algorithm.
+        """
         if not getattr(client, 'public_key', None):
             log.debug("Failed basic auth: no public key "
-                      "registered to client {}".format(request.client_id))
+                      "registered to client %s", request.client_id)
             return False
         try:
             options = {'verify_signature': True, 'verify_aud': False}
@@ -91,8 +104,12 @@ class OAuth2Validator(RequestValidator):
             assert verified_payload
             return True
 
-    def validate_subject(self, request, client, payload):
-        sub = payload.get('sub')
+    def validate_subject(self, request, client, token):
+        """
+        Ensure an 'sub' claim exists and refers to a valid, active user or is
+        client's client_id, if client uses client_credentials grant type.
+        """
+        sub = token.get('sub')
         if not sub:
             return False
         else:
@@ -113,6 +130,7 @@ class OAuth2Validator(RequestValidator):
                 return True
 
     def validate_offline_access(self, request, user, client, by_scope=False):
+        """Ensure client is authorized for offline access to resources."""
         if client.authorization_grant_type == GRANT_CLIENT_CREDENTIALS:
             return True
         elif by_scope:
@@ -135,6 +153,10 @@ class OAuth2Validator(RequestValidator):
                 return True
 
     def validate_refresh_scopes(self, request, prior_tokens, requested_scope):
+        """
+        Ensure requested scopes are in client's prior authorized scopes or
+        within the limits of client's default scopes
+        """
         if prior_tokens:
             original_scopes = set(
                 scope for token in prior_tokens
@@ -161,12 +183,29 @@ class OAuth2Validator(RequestValidator):
         else:
             return True
 
-    def validate_additional_claims(self, payload):
-        exp = float(payload['exp'])
-        timestamp_now = time.time()
-        max_sec = (jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS +
-                   jwt_oauth2_settings.TIME_SKEW_ALLOWANCE_SECONDS)
-        if exp - timestamp_now > max_sec:
+    def validate_additional_claims(self, request, token):
+        """Ensure token claims pass all additional validations."""
+        # pylint: disable-msg=unused-argument
+        validations = []
+        validations.append(self._validate_max_exp(token['exp']))
+        if not all(valid for valid in validations):
             return False
+        else:
+            return True
+
+    def _validate_max_exp(self, exp):
+        """
+        Ensure expiration date is within the maximum allowable window
+        as defined by settings.
+        (rfc7523 section 3: The authorization server may reject JWTs with an
+         "exp" claim value that is unreasonably far in the future.)
+        """
+        max_exp = jwt_oauth2_settings.JWT_MAX_EXPIRE_SECONDS or 0
+        skew = jwt_oauth2_settings.TIME_SKEW_ALLOWANCE_SECONDS or 0
+        max_sec = max_exp + skew
+        if max_sec and max_sec > 0:
+            exp = float(exp)
+            timestamp_now = time.time()
+            return exp - timestamp_now < max_sec
         else:
             return True

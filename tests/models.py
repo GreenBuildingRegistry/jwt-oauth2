@@ -7,6 +7,7 @@ copyright (c) 2016 Earth Advantage. All rights reserved.
 
 from __future__ import absolute_import, unicode_literals
 
+# Imports from Django
 from django.db import models
 
 

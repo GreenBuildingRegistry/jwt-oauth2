@@ -6,17 +6,24 @@ copyright (c) 2016 Earth Advantage. All rights reserved.
 """
 
 from __future__ import absolute_import, unicode_literals
+
+# Imports from Standard Library
 import unittest
-import mock
+
+# Imports from Django
 from django.core.exceptions import ImproperlyConfigured
 
+# Imports from Third Party Modules
+import mock
+
+# Local Imports
+from oauth2_jwt_provider.models import PublicKey
+from oauth2_jwt_provider.oauth2_validators import OAuth2Validator
 from oauth2_jwt_provider.settings import (
     OAuth2JWTProviderSettings,
-    perform_import,
     import_from_string,
+    perform_import,
 )
-from oauth2_jwt_provider.oauth2_validators import OAuth2Validator
-from oauth2_jwt_provider.models import PublicKey
 
 
 class TestSettingsFunctions(unittest.TestCase):
@@ -122,7 +129,8 @@ class TestOAuth2JWTProviderSettings(unittest.TestCase):
         mock_import.return_value = 'Class'
         with self.assertRaises(AttributeError) as err:
             self.test_settings.__getattr__('NOT_A_SETTING')
-            self.assertIn('Invalid OAuth2JWTProvider setting', err)
+        self.assertIn('Invalid OAuth2JWTProvider setting',
+                      err.exception.args[0])
 
         # priority to user settings
         expected = self.test_user_settings['USER_OVERRIDE_SETTING']
@@ -161,4 +169,4 @@ class TestOAuth2JWTProviderSettings(unittest.TestCase):
         """Test setting class validate_setting method"""
         with self.assertRaises(AttributeError) as err:
             self.test_settings.validate_setting('JWT_SETTING', None)
-            self.assertIn('is mandatory', err)
+        self.assertIn('is mandatory', err.exception.args[0])
