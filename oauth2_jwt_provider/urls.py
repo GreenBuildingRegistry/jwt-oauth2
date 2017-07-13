@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -76,4 +76,4 @@ urlpatterns = [
         RestrictedAuthorizedTokenDelete.as_view(),
         name="authorized-token-delete"
     ),
-    ]
+]
