@@ -13,7 +13,7 @@ class InvalidJWTClaimError(Exception):
     error = 'invalid_claim'
     description = ''
 
-    def __init__(self, description=None):  # pragma: no cover
+    def __init__(self, description=None):                    # pragma: no cover
         self.description = description or self.description
         message = '({}) {}'.format(self.error, self.description)
         super(InvalidJWTClaimError, self).__init__(message)
