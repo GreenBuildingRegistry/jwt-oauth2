@@ -25,34 +25,30 @@ To use the Django based OAuth Provider (oauth2_jwt_provider):
     Note: installing django-oauth-toolkit > 0.12.0 will cause Django to be updated to >= 1.10
 
     Add oauth2_provider and oauth2_jwt_provider to your INSTALLED_APPS
-    ```
-    INSTALLED_APPS = (
-        ...
-        'oauth2_provider',
-        'oauth2_jwt_provider',
-    )
-    ```
+    .. code-block:: python
+        INSTALLED_APPS = (
+            ...
+            'oauth2_provider',
+            'oauth2_jwt_provider',
+        )
 
     Add value for JWT_AUDIENCE to OAUTH2_JWT_PROVIDER namespaces settings in your project settings file. This is commonly the token endpoint URL of the authorization server.
     See also: `RFC7523 section  <https://tools.ietf.org/html/rfc7523#section-3>`_
-    ```
-    OAUTH2_JWT_PROVIDER = {
-        'JWT_AUDIENCE': 'https://localhost:8000/oauth/token/'
-    }
-    ```
+    .. code-block:: python
+        OAUTH2_JWT_PROVIDER = {
+            'JWT_AUDIENCE': 'https://localhost:8000/oauth/token/'
+        }
 
     Add OAuth2 Provider urls to your project urls.py
-    ```
-    urlpatterns = [
-        ...
-        url(r'^oauth/', include('oauth2_jwt_provider.urls', namespace='oauth2_provider')),
-    ]
-    ```
+    .. code-block:: python
+        urlpatterns = [
+            ...
+            url(r'^oauth/', include('oauth2_jwt_provider.urls', namespace='oauth2_provider')),
+        ]
 
     Sync your database:
-    ```
+    .. code-block:: python
     $ python manage.py migrate oauth2_jwt_provider
-    ```
 
 
 
