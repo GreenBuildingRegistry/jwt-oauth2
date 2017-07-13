@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -19,7 +19,7 @@ from oauth2_provider.settings import oauth2_settings
 
 # Local Imports
 from oauth2_jwt_provider.settings import jwt_oauth2_settings
-from oauth2_jwt_provider.validators import validate_public_key, PUB_KEY_LOADERS
+from oauth2_jwt_provider.validators import PUB_KEY_LOADERS, validate_public_key
 
 
 @python_2_unicode_compatible
@@ -90,5 +90,10 @@ class PublicKey(models.Model):
             delta = timezone.now() - self.pub_key_last_updated
             return delta.days >= jwt_oauth2_settings.PUBLIC_KEY_EXPIRE_DAYS
 
-    def __str__(self):  # pragma: no cover
+    def __str__(self):                                       # pragma: no cover
         return "{}-RSA Public Key".format(self.application)
+
+
+def get_public_key_model():
+    """ Return the PublicKey model that is active in this project. """
+    return jwt_oauth2_settings.PUBLIC_KEY_MODEL
