@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -102,23 +102,23 @@ class TestOAuth2Validator(TransactionTestCase):
     def test_validate_signature(self):
         """Test validate_signature"""
         result = self.validator.validate_signature(
-                self.request, self.request.client, self.assertion
-            )
+            self.request, self.request.client, self.assertion
+        )
         self.assertFalse(result)
 
         pub_key = PublicKey.objects.create(
             application=self.application, key=PUBLIC_KEY_SSH
         )
         result = self.validator.validate_signature(
-                self.request, self.request.client, self.assertion
-            )
+            self.request, self.request.client, self.assertion
+        )
         self.assertFalse(result)
 
         pub_key.key = PUBLIC_KEY_PEM
         pub_key.save()
         result = self.validator.validate_signature(
-                self.request, self.request.client, self.assertion
-            )
+            self.request, self.request.client, self.assertion
+        )
         self.assertTrue(result)
 
     def test_validate_subject(self):
@@ -184,13 +184,14 @@ class TestOAuth2Validator(TransactionTestCase):
             token='',
             application=self.application
         )
-        RefreshToken.objects.create(
-            user=self.user,
-            application=self.application,
-            access_token=access_token,
-            token=''
-        )
         # by scope
+        result = self.validator.validate_offline_access(
+            self.request, self.user, self.request.client, by_scope=True
+        )
+        self.assertFalse(result)
+
+        self.application.skip_authorization = True
+        self.application.save()
         result = self.validator.validate_offline_access(
             self.request, self.user, self.request.client, by_scope=True
         )
@@ -203,6 +204,12 @@ class TestOAuth2Validator(TransactionTestCase):
         self.assertFalse(result)
 
         # by refresh tokens
+        RefreshToken.objects.create(
+            user=self.user,
+            application=self.application,
+            access_token=access_token,
+            token=''
+        )
         result = self.validator.validate_offline_access(
             self.request, self.user, self.request.client, by_scope=False
         )

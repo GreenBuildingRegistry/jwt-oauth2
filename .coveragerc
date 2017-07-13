@@ -11,3 +11,7 @@ omit =
     *migrations*
     *tox*
     setup.py
+[report]
+sort = Cover
+skip_covered = True
+show_missing = True

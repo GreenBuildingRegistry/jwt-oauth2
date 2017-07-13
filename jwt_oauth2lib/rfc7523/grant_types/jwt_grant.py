@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -19,7 +19,10 @@ from oauthlib.oauth2.rfc6749.grant_types.base import GrantTypeBase
 # Local Imports
 from jwt_oauth2lib.rfc7523.request_validator import RequestValidator
 
+# Constants
 log = logging.getLogger(__name__)  # pylint: disable-msg=invalid-name
+INVALID_CLAIM = "Invalid Token Claim: {msg}. {payload}"
+INVALID_TOKEN = "Invalid Token: {msg}. {payload}"
 
 
 class JWTGrant(GrantTypeBase):
@@ -148,9 +151,11 @@ class JWTGrant(GrantTypeBase):
         # Simple String Comparison method defined in Section 6.2.1 of RFC
         # 3986 [RFC3986] https://tools.ietf.org/html/rfc7523#section-3
         if not self.request_validator.validate_issuer(request, payload):
-            log.debug('Invalid token, denying access. %s', payload)
+            msg = 'Missing or invalid (iss) claim'
+            log_msg = INVALID_CLAIM.format(msg=msg, payload=payload)
+            log.debug(log_msg)
             raise errors.InvalidGrantError(
-                description='Missing or invalid (iss) claim',
+                description=msg,
                 request=request
             )
 
@@ -173,9 +178,11 @@ class JWTGrant(GrantTypeBase):
         if not self.request_validator.validate_signature(
                 request, request.client, request.assertion
         ):
-            log.debug('Signature authentication failed, %s.', request)
+            msg = 'Missing or invalid token signature'
+            log_msg = INVALID_TOKEN.format(msg=msg, payload=payload)
+            log.debug(log_msg)
             raise errors.InvalidGrantError(
-                description='Missing or invalid token signature',
+                description=msg,
                 request=request
             )
 
@@ -187,9 +194,11 @@ class JWTGrant(GrantTypeBase):
         if not self.request_validator.validate_subject(
                 request, request.client, payload
         ):
-            log.debug('Invalid subject, denying access. %s', payload)
+            msg = 'Missing or invalid (sub) claim'
+            log_msg = INVALID_CLAIM.format(msg=msg, payload=payload)
+            log.debug(log_msg)
             raise errors.InvalidGrantError(
-                description='Missing or invalid (sub) claim',
+                description=msg,
                 request=request
             )
 
@@ -207,12 +216,11 @@ class JWTGrant(GrantTypeBase):
         if not self.request_validator.validate_offline_access(
                 request, request.user, request.client
         ):
-            log.debug(
-                'Invalid offline access request, for client %s.',
-                request.client
-            )
+            msg = 'Client not authorized for offline_access grants'
+            log_msg = INVALID_CLAIM.format(msg=msg, payload=payload)
+            log.debug(log_msg)
             raise errors.InvalidGrantError(
-                description='Client not authorized for offline_access grants',
+                description=msg,
                 request=request
             )
 
@@ -237,8 +245,12 @@ class JWTGrant(GrantTypeBase):
         if not self.request_validator.validate_additional_claims(
                 request, payload
         ):
+            msg = (
+                "One or more additional claims failed validation. See "
+                "provider for jwt claim requirements"
+            )
             raise errors.InvalidGrantError(
-                description='One or more jwt claims failed validation',
+                description=msg,
                 request=request
             )
 

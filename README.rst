@@ -15,13 +15,55 @@ Documentation
 
 Installation
 ------------
+JWT OAuth2 only installs the requirements for jwt_oauth2lib, since Django and related packages are not required to use the lib or the jwt_client.
+
+To use the Django based OAuth Provider (oauth2_jwt_provider):
+    Install the following dependencies:
+        django >= 1.8
+        django-oauth-toolkit==0.12.0
+        django-braces>=1.11.0
+    Note: installing django-oauth-toolkit > 0.12.0 will cause Django to be updated to >= 1.10
+
+    Add oauth2_provider and oauth2_jwt_provider to your INSTALLED_APPS
+    ```
+    INSTALLED_APPS = (
+        ...
+        'oauth2_provider',
+        'oauth2_jwt_provider',
+    )
+    ```
+
+    Add value for JWT_AUDIENCE to OAUTH2_JWT_PROVIDER namespaces settings in your project settings file. This is commonly the token endpoint URL of the authorization server.
+    See also: `RFC7523 section  <https://tools.ietf.org/html/rfc7523#section-3>`_
+    ```
+    OAUTH2_JWT_PROVIDER = {
+        'JWT_AUDIENCE': 'https://localhost:8000/oauth/token/'
+    }
+    ```
+
+    Add OAuth2 Provider urls to your project urls.py
+    ```
+    urlpatterns = [
+        ...
+        url(r'^oauth/', include('oauth2_jwt_provider.urls', namespace='oauth2_provider')),
+    ]
+    ```
+
+    Sync your database:
+    ```
+    $ python manage.py migrate oauth2_jwt_provider
+    ```
+
+
 
 Contributing
 ------------
 
 License
 -------
+JWT OAUTH2 is released under the terms of the BSD license. Full details in LICENSE file.
 
 Changelog
 ---------
-See `CHANGELOG.rst <https://github.com/GreenBuildingRegistry/jwt_oauth2/blob/master/CHANGELOG.rst>`_.
+JWT OAuth2 is in active development.
+For a full changelog see `CHANGELOG.rst <https://github.com/GreenBuildingRegistry/jwt_oauth2/blob/master/CHANGELOG.rst>`_.

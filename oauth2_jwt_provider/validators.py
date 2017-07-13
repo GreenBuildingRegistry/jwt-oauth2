@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -38,4 +38,5 @@ def validate_public_key(value):
             except (ValueError, UnsupportedAlgorithm) as err:
                 error = err
     if not is_valid:
-        raise ValidationError('Public key is not valid: {}'.format(error))
+        msg = 'Public key is not valid: {}'.format(error)
+        raise ValidationError(msg)

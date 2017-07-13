@@ -1,5 +1,9 @@
-
+#!/usr/bin/env python
+# encoding: utf-8
 """
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
+..codeauthor::Fable Turas <fable@raintechpdx.com>
+
 This module is largely derived from Django OAuth Toolkit and DRF settings.
 
 Settings for the OAuth2 JWT Provider are all namespaced in the
@@ -51,6 +55,10 @@ DEFAULTS = {
     'OAUTH2_SERVER_CLASS': 'jwt_oauth2lib.Server',
     'OAUTH2_VALIDATOR_CLASS':
         'oauth2_jwt_provider.oauth2_validators.OAuth2Validator',
+    'DEVELOPER_GROUP': None,
+    'TRUSTED_OAUTH_GROUP': None,
+    'ALLOW_SUPERUSERS': False,
+    'ALLOW_TRUSTED_BY_SCOPE': True
 }
 
 # List of settings that cannot be empty
@@ -139,7 +147,7 @@ class OAuth2JWTProviderSettings(object):
         self.dot_settings = dot_settings or DOT_SETTING_ATTRS
 
     def __getattr__(self, attr):
-        if attr not in self.defaults:
+        if attr not in self.defaults.keys():
             raise AttributeError(
                 "Invalid OAuth2JWTProvider setting: '{}'".format(attr)
             )
