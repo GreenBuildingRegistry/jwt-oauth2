@@ -44,6 +44,10 @@ class GroupRequiredMixin(BracesGroupMixin):
         return set(groups).intersection(set(user_groups))
 
 
+class DeveloperGroupRequired(GroupRequiredMixin):
+    group_required = (DEVELOPER_GROUP, TRUSTED_APP_GROUP,)
+
+
 class ApplicationRegistration(LoginRequiredMixin, CreateView):
     """
     View used to register a new Application for the request.user
@@ -64,13 +68,11 @@ class ApplicationUpdate(LoginRequiredMixin, UpdateView):
     template_name = "oauth2_provider/application_form.html"
     form_class = ApplicationRegistrationForm
 
-    def get_queryset(self):
+    def get_queryset(self):                                  # pragma: no cover
         return get_application_model().objects.filter(user=self.request.user)
 
 
 # Public Classes and Functions
-class DeveloperGroupRequired(GroupRequiredMixin):
-    group_required = (DEVELOPER_GROUP, TRUSTED_APP_GROUP,)
 
 
 class RestrictedApplicationList(DeveloperGroupRequired, ApplicationList):
