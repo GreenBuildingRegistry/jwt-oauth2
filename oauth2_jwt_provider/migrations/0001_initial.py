@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
                     on_delete=django.db.models.deletion.CASCADE,
                     related_name='public_key',
                     to=oauth2_settings.APPLICATION_MODEL)
-                ),
+                 ),
             ],
         ),
     ]

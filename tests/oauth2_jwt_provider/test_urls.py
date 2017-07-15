@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -23,6 +23,7 @@ from tests.oauth2_jwt_provider.urls import OAUTH_NAMESPACE
 
 class TestJWTOAuthUrls(TestCase):
     """JWT OAuth urls unit tests"""
+
     def setUp(self):
         """setUp"""
         self.url_pattern = OAUTH_NAMESPACE + ':{}'
