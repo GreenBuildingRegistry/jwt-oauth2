@@ -1,0 +1,5 @@
+-r common.txt
+
+# installation of django-oauth-toolkit > 0.12.0 will force django >= 1.10
+django-oauth-toolkit==0.12.0
+django-braces>=1.11.0
