@@ -10,17 +10,16 @@ Unit test for oauth2_jwt_provider view mixins
 
 from __future__ import absolute_import, unicode_literals
 
-# Imports from Standard Library
-from unittest import mock
-
-# Imports from Third Party Modules
+# Imports from Django
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory, TestCase
 from django.views.generic import View
+
 # Local Imports
 from oauth2_jwt_provider import views
 from tests.helpers import mock_as_view
+
 # Constants
 
 # Helper Functions & Classes
@@ -59,6 +58,3 @@ class ViewsMixinTests(TestCase):
         self.user.save()
         membership = mock_view.check_membership(('test_group',))
         self.assertTrue(membership)
-
-
-
