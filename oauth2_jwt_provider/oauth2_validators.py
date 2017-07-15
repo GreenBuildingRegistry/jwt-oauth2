@@ -18,8 +18,9 @@ from django.core.exceptions import ImproperlyConfigured
 # Imports from Third Party Modules
 import jwt
 from oauth2_provider.models import AbstractApplication, RefreshToken
-from oauth2_provider.oauth2_validators import \
+from oauth2_provider.oauth2_validators import (
     OAuth2Validator as RequestValidator
+)
 from oauth2_provider.oauth2_validators import GRANT_TYPE_MAPPING
 from oauth2_provider.scopes import get_scopes_backend
 from oauthlib.oauth2.rfc6749 import utils

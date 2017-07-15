@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -13,7 +13,7 @@ class InvalidJWTClaimError(Exception):
     error = 'invalid_claim'
     description = ''
 
-    def __init__(self, description=None):  # pragma: no cover
+    def __init__(self, description=None):                    # pragma: no cover
         self.description = description or self.description
         message = '({}) {}'.format(self.error, self.description)
         super(InvalidJWTClaimError, self).__init__(message)

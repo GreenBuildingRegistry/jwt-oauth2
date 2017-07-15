@@ -65,7 +65,7 @@ class JWTGrant(GrantTypeBase):
         )
 
         for modifier in self._token_modifiers:
-            token = modifier(token)  # pragma: no cover
+            token = modifier(token)                          # pragma: no cover
         self.request_validator.save_token(token, request)
 
         log.debug(
