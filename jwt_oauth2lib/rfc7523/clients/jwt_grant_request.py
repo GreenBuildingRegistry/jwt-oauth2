@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016 Earth Advantage. All rights reserved.
+copyright (c) 2016-2017 Earth Advantage. All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 """
 
@@ -22,8 +22,9 @@ from cryptography.hazmat.primitives.serialization import (
 
 # Local Imports
 from jwt_oauth2lib.rfc7523 import errors
-from jwt_oauth2lib.rfc7523.clients.assertion_validator import \
+from jwt_oauth2lib.rfc7523.clients.assertion_validator import (
     AssertionValidator
+)
 
 log = logging.getLogger(__name__)  # pylint: disable-msg=invalid-name
 
