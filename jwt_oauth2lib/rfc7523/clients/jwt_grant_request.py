@@ -26,45 +26,73 @@ from jwt_oauth2lib.rfc7523.clients.assertion_validator import (
     AssertionValidator
 )
 
-log = logging.getLogger(__name__)  # pylint: disable-msg=invalid-name
+log = logging.getLogger(__name__)            # pylint: disable-msg=invalid-name
 
 
 class JWTGrantRequest(object):
+    """JWT Grant Request client
+
+    Client for creating and encoding JWT assertions, and preparing access token
+    requests per RFC7523 standards.
+    .. _`RFC7523`: https://tools.ietf.org/html/rfc7523
+
+    JWTGrantRequest can be subclassed to set defaults for 'validator_class',
+    'audience', 'token_scope', and 'expiration_seconds'.
+    When using JWTGrantRequest without subclassing, 'audience' and
+    'assertion_validator' must be supplied on instantiation.
+    """
     _grant_type = 'urn:ietf:params:oauth:grant-type:jwt-bearer'
     _crypto_algorithm = 'RS256'
     _required_claims = ['iss', 'sub', 'aud', 'exp']
     _non_required_claims = ['nbf', 'iat', 'jti']
+    validator_class = None
+    audience = None
+    token_scope = None
+    expiration_seconds = 300
     __slots__ = (
         'iss', 'sub', 'aud', 'exp', 'nbf', 'iat', 'jti', 'other_claims',
-        'scope', 'client_id', 'signature', 'assertion_validator'
+        'scope', 'client_id', 'signature', 'assertion_validator', 'seconds',
+        'include_iat'
     )
 
-    def __init__(self, private_key, subject, issuer=None, audience=None,
-                 not_before=None, jwt_id=None, scope=None, client_id=None,
-                 expiration_seconds=300, include_issued_at=False,
-                 pvt_key_password=None, assertion_validator=None, **kwargs):
+    def __init__(self, private_key, subject, issuer, audience=None,
+                 not_before=None, jwt_id=None, token_scope=None,
+                 client_id=None, expiration_seconds=None,
+                 include_issued_at=False, pvt_key_password=None,
+                 assertion_validator=None, **kwargs):
         self.signature = self._serialize_private_key(
             private_key, pvt_key_password
         )
 
         self.sub = subject
-        self.iss = issuer or self.iss
-        self.aud = audience or self.aud
-        self.nbf = not_before or self.nbf
-        self.jti = jwt_id or self.jti
-        self.scope = scope or self.scope
-        self.client_id = client_id or self.client_id
-        self.iat = self._get_issued_at(include_issued_at)
-        self.exp = self._get_expiration(expiration_seconds)
+        self.iss = issuer
+        self.aud = audience or getattr(self, 'audience', None)
+        self.nbf = not_before
+        self.jti = jwt_id
+        self.scope = token_scope or getattr(self, 'token_scope', None)
+        self.client_id = client_id
+        self.include_iat = include_issued_at
+        self.seconds = expiration_seconds or self.expiration_seconds
         self.other_claims = kwargs
-        self.assertion_validator = assertion_validator or AssertionValidator
+        self.assertion_validator = assertion_validator or self._get_validator()
+        self.iat = None
 
-    @staticmethod
-    def _get_expiration(expiration_seconds):
-        return time.time() + expiration_seconds
+    def _get_validator(self):
+        """Get validator class instance."""
+        validator_class = self.validator_class or AssertionValidator
+        if validator_class:
+            return validator_class()
+
+    def _get_expiration(self, expiration_seconds):
+        """Get token expiration (exp) timestamp from current time or 'nbf'."""
+        timestamp = time.time()
+        if self.nbf:
+            timestamp = self.nbf
+        return timestamp + expiration_seconds
 
     @staticmethod
     def _get_issued_at(include_issued_at):
+        """Get current timestamp to include as 'iat' claim"""
         iat = None
         if include_issued_at:
             iat = time.time()
@@ -72,6 +100,7 @@ class JWTGrantRequest(object):
 
     @staticmethod
     def _serialize_private_key(private_key, password=None):
+        """Cryptographically serialize private key for token signature."""
         error = None
         pvt_key_loaders = [
             load_pem_private_key, load_der_private_key
@@ -88,29 +117,28 @@ class JWTGrantRequest(object):
                     error = False
                     break
                 except (ValueError, UnsupportedAlgorithm) as err:
-                    error = err.message
+                    error = err
         if error:
             raise errors.InvalidPrivateKeyError(error)
         else:
             return pvt_key
 
     @property
-    def token_request_string(self):
-        grant_type = "grant_type={}".format(self._grant_type)
-        assertion = "&assertion={}".format(self.create_token_assertion())
-        scope = "&scope={}".format(self.scope) if self.scope else ""
-        client_id = "&client_id={}".format(self.client_id) if self.client_id else ""
-        return "{}{}{}{}".format(grant_type, assertion, scope, client_id)
-
-    @property
     def claims_payload(self):
+        """Payload dict containing all claims to include in jwt request.
+
+        Expiration and issued at values are generated at the time of
+        claims_payload construction to allow recreation of tokens and request
+        strings without re-instantiation.
+        """
         payload = {
             'iss': self.iss,
             'aud': self.aud,
             'sub': self.sub,
-            'exp': self.exp
+            'exp': self._get_expiration(self.seconds)
         }
         optional_claims = {}
+        self.iat = self._get_issued_at(self.include_iat)
         for claim in self._non_required_claims:
             val = getattr(self, claim)
             if val:
@@ -119,15 +147,31 @@ class JWTGrantRequest(object):
         payload.update(**self.other_claims)
         return payload
 
-    def create_token_assertion(self):
+    @property
+    def token(self):
+        """Encoded jwt assertion."""
         self.validate_token_claims(self.claims_payload)
 
         return jwt.encode(
             self.claims_payload, self.signature, self._crypto_algorithm
         ).decode('utf-8')
 
-    def validate_token_claims(self, claims):
+    @property
+    def jwt_request_string(self):
+        """
+        JWT request string containing grant_type and encoded jwt assertion.
+        Scope and client_id are included if applicable.a
+        """
+        grant_type = "grant_type={}".format(self._grant_type)
+        assertion = "&assertion={}".format(self.token)
+        scope = "&scope={}".format(self.scope) if self.scope else ""
+        client_id = (
+            "&client_id={}".format(self.client_id) if self.client_id else ""
+        )
+        return "{}{}{}{}".format(grant_type, assertion, scope, client_id)
 
+    def validate_token_claims(self, claims):
+        """Validate jwt claims and request parameters"""
         if not self.assertion_validator.validate_required(
                 claims, self._required_claims
         ):
@@ -136,31 +180,33 @@ class JWTGrantRequest(object):
                 description='One or more required claims contained null value',
             )
 
-        if not self.assertion_validator.validate_iss(self.iss):
+        if not self.assertion_validator.validate_iss(claims.get('iss')):
             log.debug('Invalid issuer (iss) value. %s', self.iss)
             raise errors.InvalidJWTClaimError(
                 description='Issuer (iss) claim contains an invalid value',
             )
 
-        if not self.assertion_validator.validate_sub(self.sub):
+        if not self.assertion_validator.validate_sub(claims.get('sub')):
             log.debug('Invalid subject (sub) value. %s', self.sub)
             raise errors.InvalidJWTClaimError(
                 description='Subject (sub) claim contains an invalid value',
             )
 
-        if not self.assertion_validator.validate_aud(self.aud):
+        if not self.assertion_validator.validate_aud(claims.get('aud')):
             log.debug('Invalid audience (aud) value. %s', self.aud)
             raise errors.InvalidJWTClaimError(
                 description='Audience (aud) claim contains an invalid value',
             )
 
-        if not self.assertion_validator.validate_nbf(self.nbf, self.exp):
+        if not self.assertion_validator.validate_nbf(
+                claims.get('nbf'), claims.get('exp')
+        ):
             log.debug('Invalid not_before (nbf) value. %s', self.nbf)
             raise errors.InvalidJWTClaimError(
                 description='Not Before (nbf) claim contains an invalid value',
             )
 
-        if not self.assertion_validator.validate_jti(self.jti):
+        if not self.assertion_validator.validate_jti(claims.get('jti')):
             log.debug('Invalid JWT ID (jti) value. %s', self.jti)
             raise errors.InvalidJWTClaimError(
                 description='JWT ID (jti) claim contains an invalid value',
@@ -178,9 +224,7 @@ class JWTGrantRequest(object):
                 description='scope parameter contains an invalid value',
             )
 
-        if not self.assertion_validator.validate_additional_claims(
-                self.other_claims
-        ):
+        if not self.assertion_validator.validate_additional_claims(claims):
             log.debug(
                 'One or more additional claims contain invalid values. %s',
                 self.other_claims
