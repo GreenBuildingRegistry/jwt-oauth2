@@ -13,6 +13,7 @@ Through oauth2_jwt_provider, JWT OAuth2 takes advantage of the excellent Django 
 Documentation
 -------------
 
+
 Installation
 ------------
 JWT OAuth2 only installs the requirements for jwt_oauth2lib, since Django and related packages are not required to use the lib or the jwt_client.
@@ -32,6 +33,15 @@ To use the Django based OAuth Provider (oauth2_jwt_provider):
             'oauth2_jwt_provider',
         )
 
+    Add OAuth2Authentication to REST_FRAMEWORK namespaces settings and/or to authentication_classes on individual api views:
+    .. code-block:: python
+        REST_FRAMEWORK = {
+            'DEFAULT_AUTHENTICATION_CLASSES': (
+                'oauth2_provider.ext.rest_framework.OAuth2Authentication',
+                ...
+            ),
+        }
+
     Add value for JWT_AUDIENCE to OAUTH2_JWT_PROVIDER namespaces settings in your project settings file. This is commonly the token endpoint URL of the authorization server.
     See also: `RFC7523 section  <https://tools.ietf.org/html/rfc7523#section-3>`_
     .. code-block:: python
@@ -50,7 +60,14 @@ To use the Django based OAuth Provider (oauth2_jwt_provider):
     .. code-block:: python
     $ python manage.py migrate oauth2_jwt_provider
 
+    For additional settings options and documentation for using other OAuth2 flow types, refer to `Django OAuth Toolkit <https://django-oauth-toolkit.readthedocs.io>`_
 
+
+Client side setup:
+    A JWTGrantClient class has been provided for creating the jwt token and related params to RFC 7523 specs.
+    While this class can be used as is by supplying 'audience' and 'assertion_validator' key word args on instantiation, it is recommended that it be subclassed to set defaults for 'validator_class', 'audience', 'token_scope', 'token_url', and 'expiration_seconds'.
+    In addition, since jwt_oauth2 aims to be generic and framework agnostic, subclassing is also necessary to create functionality in the access token retrieval methods (get_access_token, and _check_token_response) using your preferred requests library.
+    You will also need to implement an AssertionValidator to provide client side validation of claims to be included in the JWT. See jwt_oauth2lib/rfc7523/clients/assertion_validator.py for required methods.
 
 Contributing
 ------------
