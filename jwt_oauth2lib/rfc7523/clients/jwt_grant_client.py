@@ -29,7 +29,7 @@ from jwt_oauth2lib.rfc7523.clients.assertion_validator import (
 log = logging.getLogger(__name__)            # pylint: disable-msg=invalid-name
 
 
-class JWTGrantRequest(object):
+class JWTGrantClient(object):
     """JWT Grant Request client
 
     Client for creating and encoding JWT assertions, and preparing access token
@@ -37,7 +37,7 @@ class JWTGrantRequest(object):
     .. _`RFC7523`: https://tools.ietf.org/html/rfc7523
 
     JWTGrantRequest can be subclassed to set defaults for 'validator_class',
-    'audience', 'token_scope', and 'expiration_seconds'.
+    'audience', 'token_scope', 'token_url', and 'expiration_seconds'.
     When using JWTGrantRequest without subclassing, 'audience' and
     'assertion_validator' must be supplied on instantiation.
     """
@@ -49,6 +49,7 @@ class JWTGrantRequest(object):
     audience = None
     token_scope = None
     expiration_seconds = 300
+    token_url = None
     __slots__ = (
         'iss', 'sub', 'aud', 'exp', 'nbf', 'iat', 'jti', 'other_claims',
         'scope', 'client_id', 'signature', 'assertion_validator', 'seconds',
@@ -157,18 +158,20 @@ class JWTGrantRequest(object):
         ).decode('utf-8')
 
     @property
-    def jwt_request_string(self):
+    def jwt_request_params(self):
         """
         JWT request string containing grant_type and encoded jwt assertion.
         Scope and client_id are included if applicable.a
         """
-        grant_type = "grant_type={}".format(self._grant_type)
-        assertion = "&assertion={}".format(self.token)
-        scope = "&scope={}".format(self.scope) if self.scope else ""
-        client_id = (
-            "&client_id={}".format(self.client_id) if self.client_id else ""
-        )
-        return "{}{}{}{}".format(grant_type, assertion, scope, client_id)
+        request_params = {
+            'grant_type': self._grant_type,
+            'assertion': self.token
+        }
+        if self.scope:                                       # pragma: no cover
+            request_params['scope'] = self.scope
+        if self.client_id:                                   # pragma: no cover
+            request_params['client_id'] = self.client_id
+        return request_params
 
     def validate_token_claims(self, claims):
         """Validate jwt claims and request parameters"""
@@ -232,3 +235,11 @@ class JWTGrantRequest(object):
             raise errors.InvalidJWTClaimError(
                 description='Additional claims contain invalid values',
             )
+
+    def get_access_token(self, *args, **kwargs):
+        """Retrieve access_token from provider using JWT Grant flow."""
+        raise NotImplementedError('Subclasses must implement this method.')
+
+    def _check_token_response(self, response, *args, **kwargs):
+        """Validate access token response from JWT Grant flow provider."""
+        raise NotImplementedError('Subclasses must implement this method.')
