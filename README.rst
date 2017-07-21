@@ -12,7 +12,32 @@ Through oauth2_jwt_provider, JWT OAuth2 takes advantage of the excellent Django 
 
 Documentation
 -------------
+Client's must register an Application before using the Authorization Server.  Access to the Application registration views is limited by the DEVELOPER_GROUP, TRUSTED_OAUTH_GROUP, or ALLOW_SUPERUSERS settings.
+Providers must register group names in settings OR set ALLOW_SUPERUSERS to True.
+    .. code-block:: python
+        OAUTH2_JWT_PROVIDER = {
+            'DEVELOPER_GROUP': 'developers',
+            'TRUSTED_OAUTH_GROUP': 'trusted_developers',
+            'ALLOW_SUPERUSERS': False
+        }
 
+Management commands have been provided to simplify adding client users to desired developer groups.
+    .. code-block:: python
+        ./manage.py add_to_developers [username]
+        ./manage.py add_to_trusted [username]
+
+Client users only need to be added to one group or the other.
+Members of the DEVELOPER_GROUP will have access to all Application registration views, but will be required to complete an authorization step for most OAuth flows.
+Adding a client user to the TRUSTED_OAUTH_GROUP will allow the authorization step to be skipped when requesting offline access.
+Control of a client application's ability to skip authorization can also be control;ed via the following management commands.
+    .. code-block:: python
+        ./manage.py allow_skip_authorization [username] --app_name=[application name] (or --app_id=[application id])
+        ./manage.py revoke_skip_authorization [username] --app_name=[application name] (or --app_id=[application id])
+
+To register a client Application, to the base namespaced application url as defined by your urls.py
+    .. code-block:: python
+        https://localhost:8000/oauth/applications/
+In order to use the JWT Grant Flow, you MUST supply a valid public ssh key.
 
 Installation
 ------------
