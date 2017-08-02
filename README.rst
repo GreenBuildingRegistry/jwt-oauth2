@@ -12,6 +12,32 @@ Through oauth2_jwt_provider, JWT OAuth2 takes advantage of the excellent Django 
 
 Documentation
 -------------
+Client's must register an Application before using the Authorization Server.  Access to the Application registration views is limited by the DEVELOPER_GROUP, TRUSTED_OAUTH_GROUP, or ALLOW_SUPERUSERS settings.
+Providers must register group names in settings OR set ALLOW_SUPERUSERS to True.
+.. code-block:: python
+        OAUTH2_JWT_PROVIDER = {
+            'DEVELOPER_GROUP': 'developers',
+            'TRUSTED_OAUTH_GROUP': 'trusted_developers',
+            'ALLOW_SUPERUSERS': False
+        }
+
+Management commands have been provided to simplify adding client users to desired developer groups
+::
+        ./manage.py add_to_developers [username]
+        ./manage.py add_to_trusted [username]
+
+Client users only need to be added to one group or the other.
+Members of the DEVELOPER_GROUP will have access to all Application registration views, but will be required to complete an authorization step for most OAuth flows.
+Adding a client user to the TRUSTED_OAUTH_GROUP will allow the authorization step to be skipped when requesting offline access.
+Control of a client application's ability to skip authorization can also be control;ed via the following management commands
+::
+        ./manage.py allow_skip_authorization [username] --app_name=[application name] (or --app_id=[application id])
+        ./manage.py revoke_skip_authorization [username] --app_name=[application name] (or --app_id=[application id])
+
+To register a client Application, to the base namespaced application url as defined by your urls.py
+::
+        https://localhost:8000/oauth/applications/
+In order to use the JWT Grant Flow, you MUST supply a valid public ssh key.
 
 Installation
 ------------
@@ -32,6 +58,15 @@ To use the Django based OAuth Provider (oauth2_jwt_provider):
             'oauth2_jwt_provider',
         )
 
+    Add OAuth2Authentication to REST_FRAMEWORK namespaces settings and/or to authentication_classes on individual api views:
+    .. code-block:: python
+        REST_FRAMEWORK = {
+            'DEFAULT_AUTHENTICATION_CLASSES': (
+                'oauth2_provider.ext.rest_framework.OAuth2Authentication',
+                ...
+            ),
+        }
+
     Add value for JWT_AUDIENCE to OAUTH2_JWT_PROVIDER namespaces settings in your project settings file. This is commonly the token endpoint URL of the authorization server.
     See also: `RFC7523 section  <https://tools.ietf.org/html/rfc7523#section-3>`_
     .. code-block:: python
@@ -50,7 +85,14 @@ To use the Django based OAuth Provider (oauth2_jwt_provider):
     .. code-block:: python
     $ python manage.py migrate oauth2_jwt_provider
 
+    For additional settings options and documentation for using other OAuth2 flow types, refer to `Django OAuth Toolkit <https://django-oauth-toolkit.readthedocs.io>`_
 
+
+Client side setup:
+    A JWTGrantClient class has been provided for creating the jwt token and related params to RFC 7523 specs.
+    While this class can be used as is by supplying 'audience' and 'assertion_validator' key word args on instantiation, it is recommended that it be subclassed to set defaults for 'validator_class', 'audience', 'token_scope', 'token_url', and 'expiration_seconds'.
+    In addition, since jwt_oauth2 aims to be generic and framework agnostic, subclassing is also necessary to create functionality in the access token retrieval methods (get_access_token, and _check_token_response) using your preferred requests library.
+    You will also need to implement an AssertionValidator to provide client side validation of claims to be included in the JWT. See jwt_oauth2lib/rfc7523/clients/assertion_validator.py for required methods.
 
 Contributing
 ------------
