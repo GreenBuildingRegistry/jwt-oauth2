@@ -81,3 +81,8 @@ INSTALLED_APPS = (
     'oauth2_jwt_provider',
     'tests',
 )
+OAUTH2_JWT_PROVIDER = {
+    'JWT_AUDIENCE': 'https://localhost:8000/oauth/token/',
+    'DEVELOPER_GROUP': None,
+    'TRUSTED_OAUTH_GROUP': 'trusted_developers',
+}
