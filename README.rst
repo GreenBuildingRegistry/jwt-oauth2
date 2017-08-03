@@ -34,7 +34,7 @@ Control of a client application's ability to skip authorization can also be cont
         ./manage.py allow_skip_authorization [username] --app_name=[application name] (or --app_id=[application id])
         ./manage.py revoke_skip_authorization [username] --app_name=[application name] (or --app_id=[application id])
 
-To register a client Application, to the base namespaced application url as defined by your urls.py
+To register a client Application, point your browser to the base namespaced application url as defined by your urls.py
 ::
         https://localhost:8000/oauth/applications/
 In order to use the JWT Grant Flow, you MUST supply a valid public ssh key.
