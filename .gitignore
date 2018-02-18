@@ -4,4 +4,7 @@
 .coverage
 *.egg-info
 *pycache*
+*pytest_cache*
 *.pyc
+build/
+dist/
