@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016-2017 Earth Advantage.
+copyright (c) 2016-2018 Earth Advantage.
 All rights reserved
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 
@@ -46,11 +46,7 @@ class AddGroupCommand(BaseCommand):
              settings""".format(self.setting_name)
             raise CommandError(msg)
         else:
-            try:
-                group = Group.objects.get(name=dev_group)
-            except Group.DoesNotExist:
-                msg = "{} Group either does not exist".format(dev_group)
-                raise CommandError(msg)
+            group, _ = Group.objects.get_or_create(name=dev_group)
 
         try:
             user = User.objects.get(username=options['username'])
