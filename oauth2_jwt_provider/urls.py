@@ -8,7 +8,7 @@ copyright (c) 2016-2018 Earth Advantage. All rights reserved.
 from __future__ import absolute_import, unicode_literals
 
 # Imports from Django
-from django.conf.urls import url
+import django
 
 # Imports from Third Party Modules
 import oauth2_provider.views as oauth2_views
@@ -23,6 +23,13 @@ from oauth2_jwt_provider.views import (
     RestrictedAuthorizedTokenDelete,
     RestrictedAuthorizedTokensList,
 )
+
+version = django.get_version()
+
+if version.startswith('2'):
+    from django.urls import include, re_path as url
+else:
+    from django.conf.urls import include, url
 
 # OAuth2 provider endpoints
 urlpatterns = [
