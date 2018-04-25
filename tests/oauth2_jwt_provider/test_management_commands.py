@@ -1,30 +1,35 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-copyright (c) 2016-2017 Earth Advantage. 
+copyright (c) 2016-2018 Earth Advantage.
 All rights reserved.
 ..codeauthor::Fable Turas <fable@raintechpdx.com>
 
 Unit tests for oauth2_jwt_provider django management commands
 """
 
-# Imports from Standard Library
-import mock
-from django.core.management import call_command, CommandError
+# Imports from Django
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.core.management import CommandError, call_command
 from django.test import TestCase
 from django.utils.six import StringIO
-from django.contrib.auth import get_user_model
 
 # Imports from Third Party Modules
+import mock
 from oauth2_provider.models import get_application_model
 
 # Local Imports
 from oauth2_jwt_provider.management.commands._private import (
     AddGroupCommand,
-    SkipAuthCommand
+    SkipAuthCommand,
 )
-from tests.helpers import UserFactory, ApplicationFactory, GroupFactory
+from oauth2_jwt_provider.management.commands.add_application import (
+    Command as AddApplicationCommand
+)
 from oauth2_jwt_provider.settings import jwt_oauth2_settings
+from tests.helpers import ApplicationFactory, GroupFactory, UserFactory
+
 # Constants
 User = get_user_model()
 TRUSTED_GROUP = 'trusted_developers'
@@ -43,19 +48,11 @@ class ManagementCommandsTests(TestCase):
         self.app_name = 'TestApp'
         self.auth_app = ApplicationFactory(name=self.app_name, user=self.user)
 
-
     def test_add_group_command(self):
         """Test AddGroupCommand handle method"""
         add_group = AddGroupCommand()
         add_group.setting_name = 'DEVELOPER_GROUP'
         jwt_oauth2_settings.DEVELOPER_GROUP = None
-        self.assertRaises(
-            CommandError,
-            add_group.handle,
-            **{'username': 'TestUser'}
-        )
-
-        jwt_oauth2_settings.DEVELOPER_GROUP = 'not_group'
         self.assertRaises(
             CommandError,
             add_group.handle,
@@ -171,3 +168,31 @@ class ManagementCommandsTests(TestCase):
             stdout=out, app_id=self.auth_app.id
         )
         self.assertIn('skip_authorization to False', out.getvalue())
+
+    def test_add_application(self):
+        add_app = AddApplicationCommand()
+        with self.assertRaises(CommandError) as err:
+            add_app.handle(
+                **{
+                    'username': 'NotAUser',
+                    'application_name': self.app_name
+                }
+            )
+        expected = "User NotAUser does not exist"
+        self.assertEqual(expected, str(err.exception))
+
+        with self.assertRaises(CommandError) as err:
+            add_app.handle(
+                **{
+                    'username': 'TestUser',
+                    'application_name': self.app_name
+                }
+            )
+        expected = 'User must belong to a developer group'
+        self.assertIn(expected, str(err.exception))
+
+        group, _ = Group.objects.get_or_create(name=TRUSTED_GROUP)
+        self.user.groups.add(group)
+        out = StringIO()
+        call_command('add_application', 'TestUser', self.app_name, stdout=out)
+        self.assertIn('Successfully setup OAuth application', out.getvalue())
